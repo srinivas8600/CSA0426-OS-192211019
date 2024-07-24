@@ -1,0 +1,158 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MEMORY_SIZE 100  // Total size of memory
+
+typedef struct {
+    int start; // Start index of the memory block
+    int size;  // Size of the memory block
+} MemoryBlock;
+
+// Memory array
+char memory[MEMORY_SIZE];
+MemoryBlock free_blocks[MEMORY_SIZE];
+int free_block_count = 0;
+
+// Initialize memory with free blocks
+void init_memory() {
+    memset(memory, 0, MEMORY_SIZE);
+    free_blocks[0].start = 0;
+    free_blocks[0].size = MEMORY_SIZE;
+    free_block_count = 1;
+}
+
+// Allocate memory using the First Fit strategy
+void* first_fit(int size) {
+    for (int i = 0; i < free_block_count; i++) {
+        if (free_blocks[i].size >= size) {
+            // Allocate memory
+            int start = free_blocks[i].start;
+            free_blocks[i].start += size;
+            free_blocks[i].size -= size;
+
+            // If the block is completely used, remove it
+            if (free_blocks[i].size == 0) {
+                for (int j = i; j < free_block_count - 1; j++) {
+                    free_blocks[j] = free_blocks[j + 1];
+                }
+                free_block_count--;
+            }
+
+            // Return the starting address of the allocated block
+            return memory + start;
+        }
+    }
+    return NULL; // No suitable block found
+}
+
+// Allocate memory using the Best Fit strategy
+void* best_fit(int size) {
+    int best_index = -1;
+    int min_size = MEMORY_SIZE + 1;
+
+    for (int i = 0; i < free_block_count; i++) {
+        if (free_blocks[i].size >= size && free_blocks[i].size < min_size) {
+            best_index = i;
+            min_size = free_blocks[i].size;
+        }
+    }
+
+    if (best_index != -1) {
+        // Allocate memory
+        int start = free_blocks[best_index].start;
+        free_blocks[best_index].start += size;
+        free_blocks[best_index].size -= size;
+
+        // If the block is completely used, remove it
+        if (free_blocks[best_index].size == 0) {
+            for (int j = best_index; j < free_block_count - 1; j++) {
+                free_blocks[j] = free_blocks[j + 1];
+            }
+            free_block_count--;
+        }
+
+        // Return the starting address of the allocated block
+        return memory + start;
+    }
+    return NULL; // No suitable block found
+}
+
+// Allocate memory using the Worst Fit strategy
+void* worst_fit(int size) {
+    int worst_index = -1;
+    int max_size = -1;
+
+    for (int i = 0; i < free_block_count; i++) {
+        if (free_blocks[i].size >= size && free_blocks[i].size > max_size) {
+            worst_index = i;
+            max_size = free_blocks[i].size;
+        }
+    }
+
+    if (worst_index != -1) {
+        // Allocate memory
+        int start = free_blocks[worst_index].start;
+        free_blocks[worst_index].start += size;
+        free_blocks[worst_index].size -= size;
+
+        // If the block is completely used, remove it
+        if (free_blocks[worst_index].size == 0) {
+            for (int j = worst_index; j < free_block_count - 1; j++) {
+                free_blocks[j] = free_blocks[j + 1];
+            }
+            free_block_count--;
+        }
+
+        // Return the starting address of the allocated block
+        return memory + start;
+    }
+    return NULL; // No suitable block found
+}
+
+// Free allocated memory and merge adjacent free blocks
+void free_memory(void* ptr, int size) {
+    int start = (char*)ptr - memory;
+
+    // Add the block to the free list
+    free_blocks[free_block_count].start = start;
+    free_blocks[free_block_count].size = size;
+    free_block_count++;
+
+    // Merge adjacent free blocks
+    for (int i = 0; i < free_block_count - 1; i++) {
+        for (int j = i + 1; j < free_block_count; j++) {
+            if (free_blocks[i].start + free_blocks[i].size == free_blocks[j].start) {
+                free_blocks[i].size += free_blocks[j].size;
+
+                // Remove the merged block
+                for (int k = j; k < free_block_count - 1; k++) {
+                    free_blocks[k] = free_blocks[k + 1];
+                }
+                free_block_count--;
+                j--;
+            }
+        }
+    }
+}
+
+int main() {
+    init_memory();
+
+    // Allocate memory using different strategies
+    void* block1 = first_fit(20);
+    void* block2 = best_fit(30);
+    void* block3 = worst_fit(40);
+
+    // Print results
+    printf("Block 1 (First Fit): %p\n", block1);
+    printf("Block 2 (Best Fit): %p\n", block2);
+    printf("Block 3 (Worst Fit): %p\n", block3);
+
+    // Free allocated memory
+    if (block1) free_memory(block1, 20);
+    if (block2) free_memory(block2, 30);
+    if (block3) free_memory(block3, 40);
+
+    return 0;
+}
