@@ -1,0 +1,43 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+
+// Define the number of threads
+#define NUM_THREADS 5
+
+// Function that each thread will execute
+void* thread_function(void* arg) {
+    int thread_num = *((int*)arg);  // Cast and dereference the argument to get the thread number
+    printf("Hello from thread %d!\n", thread_num);
+    pthread_exit(NULL);  // Exit the thread
+}
+
+int main() {
+    pthread_t threads[NUM_THREADS];  // Array to hold thread identifiers
+    int thread_args[NUM_THREADS];
+    int i;
+    int rc;
+
+    // Create threads
+    for (i = 0; i < NUM_THREADS; i++) {
+        thread_args[i] = i + 1;  // Assign thread number
+        rc = pthread_create(&threads[i], NULL, thread_function, (void*)&thread_args[i]);
+        if (rc) {
+            fprintf(stderr, "Error: Unable to create thread %d, error code %d\n", i, rc);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // Wait for all threads to complete
+    for (i = 0; i < NUM_THREADS; i++) {
+        rc = pthread_join(threads[i], NULL);
+        if (rc) {
+            fprintf(stderr, "Error: Unable to join thread %d, error code %d\n", i, rc);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    printf("All threads completed.\n");
+
+    return 0;
+}
